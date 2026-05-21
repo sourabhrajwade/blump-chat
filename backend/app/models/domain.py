@@ -40,6 +40,10 @@ class MessageDocument(BaseModel):
     id: str
     conversation_id: str
     role: MessageRole
+    """Set on user messages (e.g. username from the client)."""
+    user_id: str | None = None
+    """Set on assistant/agent messages (e.g. model or configured agent id)."""
+    agent_id: str | None = None
     content_type: ContentType = ContentType.TEXT
     content: str | dict[str, Any]
     model: str | None = None
@@ -62,6 +66,7 @@ class ConversationDocument(BaseModel):
     username: str
     title: str | None = None
     message_ids: list[str] = Field(default_factory=list)
+    file_ids: list[str] = Field(default_factory=list)
     models_used: list[str] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime

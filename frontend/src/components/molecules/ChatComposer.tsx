@@ -7,11 +7,29 @@ import { radius, spacing } from '../../theme';
 import { useAppTheme } from '../../state/ThemeContext';
 import { IconSymbol } from '../atoms/IconSymbol';
 
-export function ChatComposer() {
+type Props = {
+  onSend?: (text: string) => void | Promise<void>;
+  onAttach?: () => void | Promise<void>;
+  sending?: boolean;
+  attaching?: boolean;
+};
+
+export function ChatComposer({ onSend, onAttach, sending = false, attaching = false }: Props) {
   const insets = useSafeAreaInsets();
   const { theme } = useAppTheme();
   const { colors } = theme;
   const [message, setMessage] = useState('');
+
+  const trimmed = message.trim();
+  const busy = sending || attaching;
+  const canSend = Boolean(trimmed) && !busy;
+
+  const handleSend = () => {
+    if (!canSend || !onSend) return;
+    const text = trimmed;
+    setMessage('');
+    void onSend(text);
+  };
 
   return (
     <View style={[styles.outer, { borderTopColor: colors.outlineVariant }]}>
@@ -30,7 +48,12 @@ export function ChatComposer() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Attach file"
-          style={({ pressed }) => [styles.circleBtn, pressed && { opacity: 0.8 }]}
+          disabled={busy}
+          onPress={() => onAttach && void onAttach()}
+          style={({ pressed }) => [
+            styles.circleBtn,
+            { opacity: busy ? 0.45 : pressed ? 0.8 : 1 },
+          ]}
         >
           <IconSymbol name="attach-file" size={22} color={colors.onSurfaceVariant} />
         </Pressable>
@@ -69,9 +92,15 @@ export function ChatComposer() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Send message"
+            disabled={!canSend}
+            onPress={handleSend}
             style={({ pressed }) => [
               styles.sendBtn,
-              { backgroundColor: colors.primary, opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.95 : 1 }] },
+              {
+                backgroundColor: colors.primary,
+                opacity: !canSend ? 0.45 : pressed ? 0.9 : 1,
+                transform: [{ scale: pressed && canSend ? 0.95 : 1 }],
+              },
             ]}
           >
             <IconSymbol name="send" size={22} color={colors.onPrimary} />

@@ -49,6 +49,9 @@ class ChatQueryResponse(BaseModel):
     conversation_id: str
     user_message_id: str
     assistant_message_id: str
+    user_id: str
+    agent_id: str
+    title: str | None = None
     answer: str
     citations: list[ChatCitation]
     token_usage: TokenUsageResponse | None = None
@@ -58,11 +61,37 @@ class ChatQueryResponse(BaseModel):
 class MessageHistoryItem(BaseModel):
     id: str
     role: str
+    user_id: str | None = None
+    agent_id: str | None = None
     content_type: str
     content: str | dict[str, Any]
     model: str | None = None
     created_at: str
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class AttachFileResponse(BaseModel):
+    conversation_id: str
+    file_id: str
+    url: str
+    message_id: str
+    filename: str
+    created: bool = Field(
+        description="True when a new conversation was created for this attachment.",
+    )
+
+
+class ConversationListItem(BaseModel):
+    id: str
+    title: str | None = None
+    preview: str | None = None
+    updated_at: str
+    message_count: int = 0
+    file_ids: list[str] = Field(default_factory=list)
+
+
+class ConversationListResponse(BaseModel):
+    items: list[ConversationListItem]
 
 
 class PaginatedMessagesResponse(BaseModel):
@@ -71,3 +100,25 @@ class PaginatedMessagesResponse(BaseModel):
     page: int
     page_size: int
     has_next: bool
+
+
+class SaveMessageRequest(BaseModel):
+    """Persist a user message and link it on the conversation's message_ids array."""
+
+    message: str = Field(..., min_length=1, max_length=32000)
+    username: str = Field(..., min_length=1, max_length=256)
+    conversation_id: str | None = None
+    model: str | None = Field(
+        default=None,
+        description="Optional model label stored on the message and conversation metadata.",
+    )
+
+
+class SaveMessageResponse(BaseModel):
+    conversation_id: str
+    message_id: str
+    user_id: str
+    message_ids: list[str]
+    created: bool = Field(
+        description="True when a new conversation document was created for this request.",
+    )

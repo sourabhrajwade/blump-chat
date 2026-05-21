@@ -52,7 +52,11 @@ class Settings(BaseSettings):
     rag_chunk_size: int = Field(default=512)
     rag_chunk_overlap: int = Field(default=64)
 
-    ollama_chat_model: str = Field(default="llama3.2")
+    ollama_chat_model: str = Field(default="gemma4:e2b")
+    chat_agent_id: str = Field(
+        default="gemma4:e2b",
+        description="Stable agent identifier stored on assistant messages (defaults to chat model).",
+    )
     chat_system_prompt: str = Field(
         default=(
             "You are a precise assistant. Answer using the provided context snippets. "

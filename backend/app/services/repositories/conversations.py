@@ -25,6 +25,7 @@ class ConversationsRepository:
             username=username,
             title=title,
             message_ids=[],
+            file_ids=[],
             models_used=[],
             created_at=now,
             updated_at=now,
@@ -40,6 +41,33 @@ class ConversationsRepository:
         if doc.get("username") != username:
             raise AppError("Forbidden", code="forbidden", status_code=403)
         return doc
+
+    async def list_for_user(
+        self,
+        username: str,
+        *,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        cursor = (
+            self._coll.find({"username": username})
+            .sort("updated_at", -1)
+            .limit(limit)
+        )
+        return await cursor.to_list(length=limit)
+
+    async def set_title(self, conversation_id: str, title: str) -> None:
+        now = datetime.now(UTC)
+        await self._coll.update_one(
+            {"id": conversation_id},
+            {"$set": {"title": title[:200], "updated_at": now}},
+        )
+
+    async def append_file_id(self, conversation_id: str, file_id: str) -> None:
+        now = datetime.now(UTC)
+        await self._coll.update_one(
+            {"id": conversation_id},
+            {"$addToSet": {"file_ids": file_id}, "$set": {"updated_at": now}},
+        )
 
     async def append_message_id(
         self,

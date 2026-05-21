@@ -1,7 +1,34 @@
-const DEFAULT_BASE =
-  typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL
-    ? process.env.EXPO_PUBLIC_API_URL
-    : 'http://localhost:8080';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+
+const API_PORT = 8000;
+
+/** Dev machine IP from Expo (works on physical devices with Expo Go). */
+function hostFromExpoDebugger(): string | null {
+  const raw =
+    Constants.expoConfig?.hostUri ??
+    Constants.expoGoConfig?.debuggerHost ??
+    (Constants as { manifest2?: { extra?: { expoGo?: { debuggerHost?: string } } } })
+      .manifest2?.extra?.expoGo?.debuggerHost;
+  if (!raw) return null;
+  const host = raw.split(':')[0]?.trim();
+  return host || null;
+}
+
+export function resolveApiBase(): string {
+  const fromEnv = process.env.EXPO_PUBLIC_API_URL?.trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, '');
+
+  const devHost = hostFromExpoDebugger();
+  if (devHost) return `http://${devHost}:${API_PORT}`;
+
+  if (Platform.OS === 'android') {
+    return `http://10.0.2.2:${API_PORT}`;
+  }
+  return `http://localhost:${API_PORT}`;
+}
+
+const DEFAULT_BASE = resolveApiBase();
 
 function joinUrl(base: string, path: string): string {
   const b = base.replace(/\/$/, '');

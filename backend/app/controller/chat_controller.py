@@ -1,8 +1,14 @@
+from fastapi import HTTPException, Request, UploadFile
+
 from app.models.schemas.chat import (
+    AttachFileResponse,
     ChatQueryRequest,
     ChatQueryResponse,
+    ConversationListResponse,
     MessageHistoryItem,
     PaginatedMessagesResponse,
+    SaveMessageRequest,
+    SaveMessageResponse,
 )
 from app.models.schemas.pagination import PageParams
 from app.services.chat_service import ChatService
@@ -27,6 +33,41 @@ class ChatController:
     async def query(self, body: ChatQueryRequest) -> ChatQueryResponse:
         return await self._chat.process_query(body)
 
+    async def save_message(self, body: SaveMessageRequest) -> SaveMessageResponse:
+        return await self._chat.save_message(body)
+
+    async def attach_file(
+        self,
+        request: Request,
+        *,
+        file: UploadFile,
+        username: str,
+        conversation_id: str | None,
+    ) -> AttachFileResponse:
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="Filename is required")
+        content = await file.read()
+        if not content:
+            raise HTTPException(status_code=400, detail="File is empty")
+        mongo_db = request.app.state.mongo_client[request.app.state.mongo_db_name]
+        try:
+            return await self._chat.attach_file(
+                minio_client=request.app.state.minio,
+                mongo_db=mongo_db,
+                username=username,
+                conversation_id=conversation_id,
+                filename=file.filename,
+                content=content,
+                content_type=file.content_type,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    async def list_conversations(self, username: str, *, limit: int = 50) -> ConversationListResponse:
+        return await self._chat.list_conversations(username, limit=limit)
+
     async def list_messages(
         self,
         *,
@@ -46,6 +87,8 @@ class ChatController:
             MessageHistoryItem(
                 id=r["id"],
                 role=r["role"],
+                user_id=r.get("user_id"),
+                agent_id=r.get("agent_id"),
                 content_type=r.get("content_type", "text"),
                 content=r.get("content", ""),
                 model=r.get("model"),

@@ -23,6 +23,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     db = app.state.mongo_client[settings.mongo_db_name]
     await db["messages"].create_index([("conversation_id", 1), ("created_at", 1)])
     await db["messages"].create_index("id", unique=True)
+    await db["messages"].create_index("user_id")
+    await db["messages"].create_index("agent_id")
     await db["conversations"].create_index("id", unique=True)
     await db["conversations"].create_index([("username", 1), ("updated_at", -1)])
 

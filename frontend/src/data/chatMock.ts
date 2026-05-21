@@ -12,11 +12,12 @@ export type ChatTimelineItem =
   | {
       id: string;
       type: 'msg';
-      side: 'left';
+      side: 'left' | 'right';
       kind: 'image';
       uri: string;
       caption: string;
       time: string;
+      readReceipt?: boolean;
     };
 
 export type ChatPeerMeta = {
